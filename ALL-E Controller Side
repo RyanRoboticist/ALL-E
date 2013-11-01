@@ -1,0 +1,115 @@
+//This is the Controller Side code for the ALL-E
+//All the code was written without any tutorials or instruction
+//I did however use the Arduino official reference documentation for language syntax issues
+
+
+//Joystick pins for analog input
+int yPin = A11;
+int xPin = A0;
+//button pin for switching modes
+int button = 21;
+
+//variable for storing transmitions fromt the robot
+int ping = '0';
+
+void setup() 
+{
+  //open up serial port for computer communication 
+  Serial.begin(9600);
+  
+  //open up serial port for xbee communication
+  Serial1.begin(9600);
+  
+  //activate joystick pins and tell them to start reading
+  pinMode(xPin, INPUT);
+  pinMode(yPin, INPUT);
+  //activate button pin and have it start reading
+  pinMode(button, INPUT);
+}
+
+void loop() 
+{  
+  //read joystick pins
+  int X = analogRead(xPin);
+  int Y = analogRead(yPin);
+  
+  //convert input values to numbers between 0 and 9 to ease transmition
+  X = X/102;
+  Y = Y/102;
+  
+  if(X == 10)
+    X = 9;
+  if(Y == 10)
+    Y = 9;
+  
+ //print modified values to the the serial port on the computer for debugging  
+ Serial.print(X);
+ Serial.print(',');
+ Serial.println(Y);
+  
+  /*
+     ok so this is basically the same structure three times over. It goes:
+     
+     Robot Side       Controller Side
+     Wait       <----     Ping
+     Ping       <--->     Send data
+     Ping       ---->     Wait
+     
+     This system makes sure the robot cannot lose syncronization with the controller
+  */
+  
+  //ping
+  while(ping != 'r')
+  {
+    ping = Serial1.read();
+    Serial1.print('x');
+    delay(10);
+  }
+  //send data
+  while(ping != 'c')
+  {
+    ping = Serial1.read();
+    Serial1.print(X);
+    delay(10);
+  }
+  //ping
+  while(ping != 'r')
+  {
+    ping = Serial1.read();
+    Serial1.print('y');
+    delay(10);
+  }
+  //send data
+  while(ping != 'c')
+  {
+    ping = Serial1.read();
+    Serial1.print(Y);
+    delay(10);
+  }
+  //ping
+  while(ping != 'r')
+  {
+    ping = Serial1.read();
+    Serial1.print('x');
+    delay(10);
+  }
+  //Read the button and send a 1 or a 0 to tell the robot what the mode to go into 
+  if(digitalRead(button) == HIGH)
+  {
+    while(ping != 'c')
+    {
+      ping = Serial1.read();
+      Serial.print('1');
+      delay(10);
+    }
+  }
+  else
+  {  
+    while(ping != 'c')
+    {
+      ping = Serial1.read();
+      Serial.print('0');
+      delay(10);
+    }
+  }
+}
